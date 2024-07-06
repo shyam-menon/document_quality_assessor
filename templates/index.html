@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Quality Assessor</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 980px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        button {
+            background-color: #2ea44f;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        button:hover {
+            background-color: #2c974b;
+        }
+        #result {
+            margin-top: 20px;
+            overflow-y: auto;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 16px;
+            background-color: #fff;
+        }
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+        }
+        select, label {
+        display: block;
+        margin-bottom: 10px;
+        }
+    
+    select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+        }
+    
+    label {
+        font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Document Quality Assessor</h1>
+    
+    <div>
+        <label for="documentType">Document Type:</label>
+        <select id="documentType" onchange="updateAssessmentTypes()">
+            <option value="business">Business Requirement Document</option>
+            <option value="functional">Functional Requirement Document</option>
+        </select>
+    </div>
+    
+    <div>
+        <label for="assessmentType">Assessment Type:</label>
+        <select id="assessmentType">
+            <option value="userStory">Assess User Story Quality</option>
+            <option value="qualityScore">Calculate Quality Score</option>
+        </select>
+    </div>
+    
+    <textarea id="documentContent" rows="10" placeholder="Paste your document content here"></textarea>
+    <button id="assessButton" onclick="assessDocument()">Assess Document</button>
+    <div id="result" class="markdown-body"></div>    
+
+    <script>    
+    
+    let isRawText = false;
+    let rawContent = '';
+
+        const prompts = {
+            business: {
+                userStory: `As an expert business analyst, analyze the following business requirement document. Follow these steps:
+    1. Create two tables: Table 1: Who | What | Why Table 2: Context | Event | Outcome
+    2. Populate these tables with information from the requirement document.
+    3. Generate user stories in the format: AS a [Who], I want [What] so that [Why].
+    4. Create acceptance criteria for each user story in the format: GIVEN {a context} WHEN {an event} THEN {an outcome}.
+    5. Create a review table with these columns: User Story | Acceptance Criterion | Clarification Needed
+    6. Assess each user story and acceptance criterion, populating the review table. Use the INVEST criteria to determine if requirements are clear.
+    7. Provide an overall assessment including:
+       * Clarity of requirements from a business perspective
+       * Areas needing further clarification
+       * Identification of functional requirements
+    After your analysis, present the tables, user stories, acceptance criteria, review table, and overall assessment.
+    
+    Document content:
+    `,
+                qualityScore: `You are an expert business analyst and technical writer specializing in evaluating the quality of business requirements documents. Your task is to analyze the given document and provide a detailed assessment based on the following criteria:
+    1. Completeness (Score out of 10)
+       * Are all essential sections present? (e.g., Introduction, Objectives, Scope, Functional Requirements, Non-Functional Requirements, Constraints, Assumptions)
+       * Is each requirement fully described?
+       * Are there any obvious gaps in information?
+    2. Clarity (Score out of 10)
+       * Is the language clear and unambiguous?
+       * Are technical terms well-defined?
+       * Is the document easy to understand for its intended audience?
+    3. Consistency (Score out of 10)
+       * Are there any contradictions between requirements?
+       * Is terminology used consistently throughout the document?
+       * Do the requirements align with the stated objectives?
+    4. Specificity (Score out of 10)
+       * Are the requirements specific and measurable?
+       * Are there clear acceptance criteria for each requirement?
+       * Are any requirements too vague or open to interpretation?
+    5. Feasibility (Score out of 10)
+       * Do the requirements seem realistic and achievable?
+       * Are there any requirements that may be challenging to implement given typical constraints?
+    6. Traceability (Score out of 10)
+       * Are requirements uniquely identified?
+       * Are relationships between requirements clearly stated?
+       * Can each requirement be traced back to a business need or objective?
+    7. Testability (Score out of 10)
+       * Can the requirements be verified through testing?
+       * Are there any requirements that would be difficult to test?
+    8. Prioritization (Score out of 10)
+       * Are the requirements prioritized?
+       * Is the rationale for prioritization clear?
+    9. Stakeholder Consideration (Score out of 10)
+       * Are all relevant stakeholders identified?
+       * Are stakeholder needs and expectations clearly addressed?
+    10. Overall Document Structure and Presentation (Score out of 10)
+       * Is the document well-organized and easy to navigate?
+       * Are there appropriate visuals, diagrams, or tables to support the text?
+       * Is the formatting consistent and professional?
+    For each criterion, provide:
+    1. The numerical score
+    2. A brief explanation of the score
+    3. Specific examples from the document supporting your assessment
+    4. Suggestions for improvement
+    After evaluating all criteria, provide:
+    1. An overall quality score (out of 100)
+    2. A summary of the document's strengths
+    3. A summary of areas needing improvement
+    4. Top 3 recommendations for enhancing the document's quality
+    Finally, create a visual representation of the scores using ASCII art. Represent each criterion's score as a bar chart, where each '|' character represents 1 point out of 10. Also, include the overall score.
+    Example output format:
+    Completeness ||||||||| 9/10
+    Clarity       ||||||| 7/10
+    ...
+    Overall Score: 85/100
+    [Detailed analysis for each criterion]
+    [Summary and recommendations]
+    [ASCII bar chart]
+    Analyze the following business requirements document and provide your assessment:
+    `
+            },
+            functional: {
+                userStory: `As an expert software architect, analyze the following functional requirement document. Follow these steps:
+1. Create a table with these columns: Business Req ID | Functional Req ID | Requirement Description | Primary asset | Secondary asset | Change needed | Supporting model | Dependencies | Assumptions
+2. Populate this table with information from the functional requirement document.
+3. For each requirement, generate: 
+   a) A use case in the format: 
+      Title: [Brief description]
+      Actor: [Primary user]
+      Precondition: [State before use case]
+      Main Flow:
+        1. [Step 1]
+        2. [Step 2]
+        ...
+      Postcondition: [State after use case]
+   b) Acceptance criteria in the format: 
+      GIVEN [initial context]
+      WHEN [action is performed]
+      THEN [expected outcome]
+4. Create a review table with these columns: Requirement ID | Use Case | Acceptance Criteria | Technically Feasible? (Yes/No) | Implementation Complexity (Low/Medium/High) | Potential Challenges
+5. Assess each requirement, populating the review table.
+6. Provide an overall technical assessment including:
+   1. Architectural implications of the requirements
+   2. Potential integration points with existing systems
+   3. Scalability and performance considerations
+   4. Security implications
+   5. Suggested technologies or frameworks for implementation
+   6. Areas requiring further technical clarification
+7. Propose a high-level system architecture diagram that would satisfy these requirements, describing key components and their interactions.
+After your analysis, present the requirements table, use cases, acceptance criteria, review table, overall technical assessment, and proposed architecture diagram.
+
+[Insert functional requirement document here]
+`,
+                qualityScore: `You are an expert business analyst and technical writer specializing in evaluating the quality of business requirements documents. Your task is to analyze the given document and provide a detailed assessment based on the following criteria:
+1. Completeness (Score out of 10)
+   * Are all essential sections present? (e.g., Introduction, Objectives, Scope, Functional Requirements, Non-Functional Requirements, Constraints, Assumptions)
+   * Is each requirement fully described?
+   * Are there any obvious gaps in information?
+2. Clarity (Score out of 10)
+   * Is the language clear and unambiguous?
+   * Are technical terms well-defined?
+   * Is the document easy to understand for its intended audience?
+3. Consistency (Score out of 10)
+   * Are there any contradictions between requirements?
+   * Is terminology used consistently throughout the document?
+   * Do the requirements align with the stated objectives?
+4. Specificity (Score out of 10)
+   * Are the requirements specific and measurable?
+   * Are there clear acceptance criteria for each requirement?
+   * Are any requirements too vague or open to interpretation?
+5. Feasibility (Score out of 10)
+   * Do the requirements seem realistic and achievable?
+   * Are there any requirements that may be challenging to implement given typical constraints?
+6. Traceability (Score out of 10)
+   * Are requirements uniquely identified?
+   * Are relationships between requirements clearly stated?
+   * Can each requirement be traced back to a business need or objective?
+7. Testability (Score out of 10)
+   * Can the requirements be verified through testing?
+   * Are there any requirements that would be difficult to test?
+8. Prioritization (Score out of 10)
+   * Are the requirements prioritized?
+   * Is the rationale for prioritization clear?
+9. Stakeholder Consideration (Score out of 10)
+   * Are all relevant stakeholders identified?
+   * Are stakeholder needs and expectations clearly addressed?
+10. Overall Document Structure and Presentation (Score out of 10)
+   * Is the document well-organized and easy to navigate?
+   * Are there appropriate visuals, diagrams, or tables to support the text?
+   * Is the formatting consistent and professional?
+For each criterion, provide:
+1. The numerical score
+2. A brief explanation of the score
+3. Specific examples from the document supporting your assessment
+4. Suggestions for improvement
+After evaluating all criteria, provide:
+1. An overall quality score (out of 100)
+2. A summary of the document's strengths
+3. A summary of areas needing improvement
+4. Top 3 recommendations for enhancing the document's quality
+Finally, create a visual representation of the scores using ASCII art. Represent each criterion's score as a bar chart, where each '|' character represents 1 point out of 10. Also, include the overall score.
+Example output format:
+Completeness ||||||||| 9/10
+Clarity       ||||||| 7/10
+...
+Overall Score: 85/100
+[Detailed analysis for each criterion]
+[Summary and recommendations]
+[ASCII bar chart]
+Analyze the following functional requirements document and provide your assessment:`
+            }
+        };
+    
+        function updateAssessmentTypes() {
+            const documentType = document.getElementById('documentType').value;
+            const assessmentType = document.getElementById('assessmentType');
+            
+            // Clear existing options
+            assessmentType.innerHTML = '';
+            
+            // Add new options based on document type
+            for (let type in prompts[documentType]) {
+                let option = document.createElement('option');
+                option.value = type;
+                option.textContent = type === 'userStory' ? 'Assess User Story Quality' : 'Calculate Quality Score';
+                assessmentType.appendChild(option);
+            }
+        }
+    
+        function assessDocument() {         
+            
+            const button = document.getElementById('assessButton');
+            button.disabled = true;
+            button.textContent = 'Assessing...';
+
+            const documentContent = document.getElementById('documentContent').value;
+            if (!documentContent) {
+            alert("Please enter document content before assessing.");
+            return;
+            }
+            const documentType = document.getElementById('documentType').value;
+            const assessmentType = document.getElementById('assessmentType').value;
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Assessing... This may take a moment.</p>';
+            
+            let prompt = prompts[documentType][assessmentType];
+            
+            // Append the document content to the prompt
+            prompt += documentContent;
+            
+            resultDiv.innerHTML = 'Assessing...';
+    
+            axios.post('/assess', new URLSearchParams({
+                document_content: documentContent,
+                prompt: prompt,
+                max_tokens: 3000,
+                temperature: 0.3,
+            }))
+                .then(function (response) {
+                const markdownContent = response.data.assessment;
+                console.log("Full response:", markdownContent);
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = marked.parse(markdownContent);              
+                
+            })
+            .catch(function (error) {
+                resultDiv.innerHTML = '<h2>Error:</h2><pre>' + error.response.data.error + '</pre>';
+            })
+            .finally(function() {
+                button.disabled = false;
+                button.textContent = 'Assess Document';
+            });
+        }
+
+        document.getElementById('toggleRawText').addEventListener('click', function() {
+            const resultDiv = document.getElementById('result');
+            if (isRawText) {
+                resultDiv.innerHTML = marked.parse(rawContent);
+                this.textContent = 'Show Raw Text';
+            } else {
+                resultDiv.innerHTML = '<pre>' + rawContent + '</pre>';
+                this.textContent = 'Show Formatted Text';
+            }
+            isRawText = !isRawText;
+        });           
+    
+        // Initialize assessment types
+        updateAssessmentTypes();
+    </script>
+</body>
+</html>
