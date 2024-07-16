@@ -2,7 +2,10 @@ from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 from openai import OpenAI
 import os
+import logging
 
+
+USE_GPT4 = False  # Set to True to use GPT-4, False for GPT-3.5-turbo
 os.environ["OPENAI_API_KEY"] = "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"
 
 load_dotenv()
@@ -34,9 +37,11 @@ def assess_document():
     if not prompt:
         prompt = "Please assess the quality of the following document. Provide a detailed analysis of its structure, content, and overall quality."
     
+    logging.info(f"Using model: {'gpt-4' if USE_GPT4 else 'gpt-3.5-turbo'}")
     try:
+        model = "gpt-4" if USE_GPT4 else "gpt-3.5-turbo"
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=model,
             messages=[
                 {"role": "system", "content": "You are a document quality assessment expert."},
                 {"role": "user", "content": f"{prompt}\n\nDocument content:\n{document_content}"}
