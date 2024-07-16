@@ -79,6 +79,7 @@
         <select id="documentType" onchange="updateAssessmentTypes()">
             <option value="business">Business Requirement Document</option>
             <option value="functional">Functional Requirement Document</option>
+            <option value="changerequest">Change Request Document</option>
         </select>
     </div>
     
@@ -264,6 +265,33 @@ Overall Score: 85/100
 [Summary and recommendations]
 [ASCII bar chart]
 Analyze the following functional requirements document and provide your assessment:`
+            },
+            changerequest: {
+                qualityScore: 
+                `Analyze the provided Change Request (CR) document and perform the following assessments:
+        1. Provide a short summary of the problem and why the change is needed
+        2. Document Quality Assessment: Evaluate the document based on the following parameters:
+           * Completeness: Assess if all sections are filled out and contain relevant information.
+           * Clarity: Determine if the information provided is clear and easily understandable.
+           * Consistency: Check if the information across sections is consistent and aligned.
+           * Specificity: Evaluate if the details provided are specific and actionable. Provide a ranking for each parameter on a scale of 1-5 (1 being poor, 5 being excellent). Calculate an overall ranking based on the average of these scores. Present the results in a visual format, such as a radar chart or bar graph.
+        3. Clarity Analysis: Identify any areas in the document that lack clarity or require more information. For each unclear area:
+           * Specify the section or content that needs improvement.
+           * Explain why it's unclear or what additional information is needed.
+           * Suggest how it could be improved for better clarity.
+        4. User Story and Acceptance Criteria Generation: Based on the requirements outlined in the CR form:
+           * Break down the requirements into user stories.
+           * Create acceptance criteria for each user story.
+           * Identify any aspects of the user stories or acceptance criteria that need further clarification. Present this information in a table format with the following columns: | User Story | Acceptance Criteria | Clarity Needed |
+        Provide your analysis in the style of an expert business analyst, using an informational tone. Focus on objective observations and constructive feedback. Highlight both strengths and areas for improvement in the document.
+        Finally, create a visual representation of the scores using ASCII art. Represent each criterion's score as a bar chart, where each '|' character represents 1 point out of 5. Also, include the overall score.
+        Example output format:
+        Completeness ||||||||| 3/5
+        Clarity ||||||| 4/5
+        ...
+        Overall Score: 16/20
+        [Detailed analysis for each criterion]
+        [Summary and recommendations]`
             }
         };
     
@@ -310,7 +338,7 @@ Analyze the following functional requirements document and provide your assessme
                 document_content: documentContent,
                 prompt: prompt,
                 max_tokens: 3000,
-                temperature: 0.3,
+                temperature: 0.1,
             }))
                 .then(function (response) {
                 const markdownContent = response.data.assessment;
