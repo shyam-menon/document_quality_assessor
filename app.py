@@ -5,8 +5,8 @@ import os
 import logging
 
 
-USE_GPT4 = False  # Set to True to use GPT-4, False for GPT-3.5-turbo
-os.environ["OPENAI_API_KEY"] = "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"
+USE_GPT4 = True  # Set to True to use GPT-4, False for GPT-3.5-turbo
+os.environ["OPENAI_API_KEY"] = "[INSERT YOUR OPENAI API KEY HERE]"
 
 load_dotenv()
 
