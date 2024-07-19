@@ -5,8 +5,8 @@ import os
 import logging
 
 
-USE_GPT4 = True  # Set to True to use GPT-4, False for GPT-3.5-turbo
-os.environ["OPENAI_API_KEY"] = "[INSERT YOUR OPENAI API KEY HERE]"
+USE_GPT4 = False  # Set to True to use GPT-4, False for GPT-4o-mini
+os.environ["OPENAI_API_KEY"] = "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"
 
 load_dotenv()
 
@@ -39,7 +39,7 @@ def assess_document():
     
     logging.info(f"Using model: {'gpt-4' if USE_GPT4 else 'gpt-3.5-turbo'}")
     try:
-        model = "gpt-4" if USE_GPT4 else "gpt-3.5-turbo"
+        model = "gpt-4" if USE_GPT4 else "gpt-4o-mini"
         response = client.chat.completions.create(
             model=model,
             messages=[
