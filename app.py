@@ -6,12 +6,9 @@ import logging
 
 
 USE_GPT4 = False  # Set to True to use GPT-4, False for GPT-4o-mini
-os.environ["OPENAI_API_KEY"] = "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"
+
 
 load_dotenv()
-
-# Print the API key to check if it's loaded (remove this in production)
-print(f"API Key: {os.getenv('OPENAI_API_KEY')}")
 
 app = Flask(__name__)
 
